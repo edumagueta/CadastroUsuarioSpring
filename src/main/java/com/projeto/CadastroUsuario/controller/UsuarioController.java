@@ -24,7 +24,7 @@ public class UsuarioController {
         return usuarioService.salvarUsuario(usuario);
     }
 
-    @GetMapping
+    @GetMapping("/customer")
     public ResponseEntity<?> buscarUsuarioPorNome(@RequestParam String nome){
         Optional<Usuario> usuario = usuarioService.buscarUsuarioPorNome(nome);
         if (usuario.isPresent()){

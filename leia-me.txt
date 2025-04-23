@@ -1,0 +1,7 @@
+quando estiver fazendo o projeto, pode rodar esse carinha junto
+
+vai ter esses endpoints
+
+localhost:9000/federal-manager/
+
+localhost:9001/credit-analysis/person
