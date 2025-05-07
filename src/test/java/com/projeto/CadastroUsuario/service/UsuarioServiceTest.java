@@ -13,6 +13,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
 import java.util.Optional;
 
 @ExtendWith(MockitoExtension.class)
@@ -51,5 +52,24 @@ class UsuarioServiceTest {
         Mockito.when(usuarioRepository.findByNome("Desconhecido")).thenReturn(Optional.empty());
         boolean resultado = usuarioService.deletarUsuarioPorNome("Desconhecido");
         Assertions.assertFalse(resultado);
+    }
+
+    @Test
+    void testSalvarUsuario() {
+        Usuario usuario = new Usuario();
+        usuario.setNome("Eduardo");
+        Mockito.when(usuarioRepository.save(any())).thenReturn(usuario);
+
+        Usuario salvo = usuarioService.salvarUsuario(usuario);
+        assertEquals("Eduardo", salvo.getNome());
+    }
+
+    @Test
+    void testListarUsuarios() {
+        List<Usuario> usuarios = List.of(new Usuario(), new Usuario());
+        Mockito.when(usuarioRepository.findAll()).thenReturn(usuarios);
+
+        List<Usuario> resultado = usuarioService.listarUsuarios();
+        assertEquals(2, resultado.size());
     }
 }
