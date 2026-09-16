@@ -15,7 +15,10 @@ public class Usuario {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String nome;
+
+    @Column(unique = true, nullable = false)
     private String email;
+
     private LocalDate dataNascimento;
     private String documento;
     private Boolean IndicadorRegularidade;
