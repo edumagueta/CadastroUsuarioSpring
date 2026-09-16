@@ -6,6 +6,8 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Column;
 
+import java.time.LocalDate;
+
 @Entity
 public class Usuario {
 
@@ -14,7 +16,10 @@ public class Usuario {
     private Long id;
     private String nome;
     private String email;
-    private int idade;
+    private LocalDate dataNascimento;
+    private String documento;
+    private Boolean IndicadorRegularidade;
+    private Integer scoreCredito;
 
     public Long getId() {
         return id;
@@ -40,11 +45,35 @@ public class Usuario {
         this.email = email;
     }
 
-    public int getIdade() {
-        return idade;
+    public LocalDate getDataNascimento() {
+        return dataNascimento;
     }
 
-    public void setIdade(int idade) {
-        this.idade = idade;
+    public void setDataNascimento(LocalDate dataNascimento) {
+        this.dataNascimento = dataNascimento;
+    }
+
+    public String getDocumento() {
+        return documento;
+    }
+
+    public void setDocumento(String documento) {
+        this.documento = documento;
+    }
+
+    public Boolean getIndicadorRegularidade() {
+        return IndicadorRegularidade;
+    }
+
+    public void setIndicadorRegularidade(Boolean indicadorRegularidade) {
+        IndicadorRegularidade = indicadorRegularidade;
+    }
+
+    public Integer getScoreCredito() {
+        return scoreCredito;
+    }
+
+    public void setScoreCredito(Integer scoreCredito) {
+        this.scoreCredito = scoreCredito;
     }
 }
