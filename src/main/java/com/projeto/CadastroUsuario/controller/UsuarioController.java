@@ -1,5 +1,7 @@
 package com.projeto.CadastroUsuario.controller;
 
+import com.projeto.CadastroUsuario.dto.UsuarioRequest;
+import com.projeto.CadastroUsuario.dto.UsuarioResponse;
 import com.projeto.CadastroUsuario.model.Usuario;
 import com.projeto.CadastroUsuario.service.UsuarioService;
 import lombok.RequiredArgsConstructor;
@@ -7,8 +9,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/customers")
@@ -18,13 +20,13 @@ public class UsuarioController {
     private final UsuarioService usuarioService;
 
     @PostMapping
-    public ResponseEntity<?> incluirUsuario(@RequestBody Usuario usuario) {
+    public ResponseEntity<UsuarioResponse> incluirUsuario(@RequestBody UsuarioRequest request) {
         try {
-            Usuario usuarioSalvo = usuarioService.salvarUsuario(usuario);
-            return ResponseEntity.status(HttpStatus.CREATED).body(usuarioSalvo);
+            Usuario usuarioSalvo = usuarioService.salvarUsuario(request);
+            return ResponseEntity.status(HttpStatus.CREATED).body(UsuarioResponse.fromEntity(usuarioSalvo));
 
         } catch (IllegalArgumentException error) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(error.getMessage());
+            return ResponseEntity.status(HttpStatus.CONFLICT).build();
         }
     }
 
@@ -36,7 +38,8 @@ public class UsuarioController {
 
         if (email != null) {
             try {
-                return ResponseEntity.ok(usuarioService.buscarPorEmail(email));
+                Usuario usuario = usuarioService.buscarPorEmail(email);
+                return ResponseEntity.ok(UsuarioResponse.fromEntity(usuario));
             } catch (IllegalArgumentException error) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error.getMessage());
             }
@@ -44,7 +47,9 @@ public class UsuarioController {
 
         if (documento != null) {
             try {
-                return ResponseEntity.ok(usuarioService.buscarPorDocumento(documento));
+                Usuario usuario = usuarioService.buscarPorDocumento(documento);
+
+                return ResponseEntity.ok(UsuarioResponse.fromEntity(usuario));
             } catch (IllegalArgumentException error) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error.getMessage());
             }
@@ -56,14 +61,19 @@ public class UsuarioController {
             if (usuarios.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Usuário não encontrado");
             }
-            return ResponseEntity.ok(usuarios);
+
+            List<UsuarioResponse> response = usuarios.stream().map(UsuarioResponse::fromEntity).toList();
+
+            return ResponseEntity.ok(response);
         }
-        return ResponseEntity.ok(usuarioService.listarUsuarios());
+
+        List<UsuarioResponse> response = usuarioService.listarUsuarios().stream()
+                .map(UsuarioResponse::fromEntity).toList();
+        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping
-    public ResponseEntity<?> deletarUsuarioPorEmail(
-            @RequestParam String email) {
+    public ResponseEntity<?> deletarUsuarioPorEmail(@RequestParam String email) {
 
         boolean deleted = usuarioService.deletarUsuarioPorEmail(email);
 

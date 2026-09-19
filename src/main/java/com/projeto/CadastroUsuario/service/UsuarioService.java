@@ -1,9 +1,9 @@
 package com.projeto.CadastroUsuario.service;
 
+import com.projeto.CadastroUsuario.dto.UsuarioRequest;
 import com.projeto.CadastroUsuario.model.Usuario;
 import com.projeto.CadastroUsuario.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -15,24 +15,26 @@ public class UsuarioService {
 
     private final UsuarioRepository usuarioRepository;
 
-    public Usuario salvarUsuario(Usuario usuario) {
-        String email = usuario.getEmail();
-        String documento = usuario.getDocumento();
+    public Usuario salvarUsuario(UsuarioRequest request) {
 
-        if (email != null && usuarioRepository.findByEmail(email).isPresent()) {
-            throw new IllegalArgumentException(
-                    "Já existe um usuário cadastrado com este e-mail."
-            );
+        if (usuarioRepository.findByEmail(request.getEmail()).isPresent()) {
+            throw new IllegalArgumentException("Já existe um usuário cadastrado com este e-mail.");
         }
 
-        if (documento != null
-                && !documento.isBlank()
-                && usuarioRepository.findByDocumento(documento).isPresent()) {
+        if (request.getDocumento() != null
+                && !request.getDocumento().isBlank()
+                && usuarioRepository.findByDocumento(request.getDocumento()).isPresent()) {
 
-            throw new IllegalArgumentException(
-                    "Já existe um usuário cadastrado com este documento."
-            );
+            throw new IllegalArgumentException("Já existe um usuário cadastrado com este documento.");
         }
+
+        Usuario usuario = new Usuario();
+
+        usuario.setNome(request.getNome());
+        usuario.setEmail(request.getEmail());
+        usuario.setDataNascimento(request.getDataNascimento());
+        usuario.setDocumento(request.getDocumento());
+
         return usuarioRepository.save(usuario);
     }
 
