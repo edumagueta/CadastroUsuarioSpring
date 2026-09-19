@@ -20,30 +20,56 @@ public class UsuarioController {
     @PostMapping
     public ResponseEntity<?> incluirUsuario(@RequestBody Usuario usuario) {
         try {
-            return ResponseEntity.ok(usuarioService.salvarUsuario(usuario));
+            Usuario usuarioSalvo = usuarioService.salvarUsuario(usuario);
+            return ResponseEntity.status(HttpStatus.CREATED).body(usuarioSalvo);
+
         } catch (IllegalArgumentException error) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(error.getMessage());
         }
     }
 
-    @GetMapping("/customer")
-    public ResponseEntity<?> buscarUsuarioPorNome(@RequestParam String nome){
-        Optional<Usuario> usuario = usuarioService.buscarUsuarioPorNome(nome);
-        if (usuario.isPresent()){
-            return ResponseEntity.ok(usuario.get());
-        } return ResponseEntity.status(404).body("Usuario não encontrado");
-    }
-
     @GetMapping
-    public List<Usuario> listarUsuarios(){
-        return usuarioService.listarUsuarios();
+    public ResponseEntity<?> buscarUsuario(
+            @RequestParam(required = false) String nome,
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false) String documento) {
+
+        if (email != null) {
+            try {
+                return ResponseEntity.ok(usuarioService.buscarPorEmail(email));
+            } catch (IllegalArgumentException error) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error.getMessage());
+            }
+        }
+
+        if (documento != null) {
+            try {
+                return ResponseEntity.ok(usuarioService.buscarPorDocumento(documento));
+            } catch (IllegalArgumentException error) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error.getMessage());
+            }
+        }
+
+        if (nome != null) {
+            List<Usuario> usuarios = usuarioService.buscarUsuariosPorNome(nome);
+
+            if (usuarios.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Usuário não encontrado");
+            }
+            return ResponseEntity.ok(usuarios);
+        }
+        return ResponseEntity.ok(usuarioService.listarUsuarios());
     }
 
     @DeleteMapping
-    public ResponseEntity<?> deletarUsuario(@RequestParam String nome){
-        boolean deleted = usuarioService.deletarUsuarioPorNome(nome);
-        if (deleted){
-            return ResponseEntity.ok("Usuario removido com sucesso");
-        } return ResponseEntity.status(404).body("Cliente não encontrado");
+    public ResponseEntity<?> deletarUsuarioPorEmail(
+            @RequestParam String email) {
+
+        boolean deleted = usuarioService.deletarUsuarioPorEmail(email);
+
+        if (deleted) {
+            return ResponseEntity.ok("Usuário removido com sucesso");
+        }
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Usuário não encontrado");
     }
 }

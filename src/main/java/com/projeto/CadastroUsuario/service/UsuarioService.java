@@ -15,34 +15,53 @@ public class UsuarioService {
 
     private final UsuarioRepository usuarioRepository;
 
-    public Usuario salvarUsuario(Usuario usuario){
-        if(usuarioRepository.findByEmail(usuario.getEmail()).isPresent()){
-            throw new IllegalArgumentException("Já existe um usuário cadastrado com este e-mail.");
+    public Usuario salvarUsuario(Usuario usuario) {
+        String email = usuario.getEmail();
+        String documento = usuario.getDocumento();
+
+        if (email != null && usuarioRepository.findByEmail(email).isPresent()) {
+            throw new IllegalArgumentException(
+                    "Já existe um usuário cadastrado com este e-mail."
+            );
+        }
+
+        if (documento != null
+                && !documento.isBlank()
+                && usuarioRepository.findByDocumento(documento).isPresent()) {
+
+            throw new IllegalArgumentException(
+                    "Já existe um usuário cadastrado com este documento."
+            );
         }
         return usuarioRepository.save(usuario);
     }
 
-    public Optional<Usuario> buscarUsuarioPorNome(String nome){
+    public List<Usuario> buscarUsuariosPorNome(String nome) {
         return usuarioRepository.findByNome(nome);
     }
 
     public Usuario buscarPorEmail(String email) {
         return usuarioRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Usuário não encontrado."
-                ));
+                .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado."));
     }
 
-    public List<Usuario> listarUsuarios(){
+    public Usuario buscarPorDocumento(String documento) {
+        return usuarioRepository.findByDocumento(documento)
+                .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado."));
+    }
+
+    public List<Usuario> listarUsuarios() {
         return usuarioRepository.findAll();
     }
 
-    public boolean deletarUsuarioPorNome(String nome){
-        Optional<Usuario> usuario = usuarioRepository.findByNome(nome);
-        if (usuario.isPresent()){
+    public boolean deletarUsuarioPorEmail(String email) {
+        Optional<Usuario> usuario = usuarioRepository.findByEmail(email);
+
+        if (usuario.isPresent()) {
             usuarioRepository.delete(usuario.get());
             return true;
         }
-            return false;
+
+        return false;
     }
 }
