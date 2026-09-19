@@ -1,47 +1,85 @@
 package com.projeto.CadastroUsuario.controller;
 
+import com.projeto.CadastroUsuario.dto.UsuarioRequest;
+import com.projeto.CadastroUsuario.dto.UsuarioResponse;
 import com.projeto.CadastroUsuario.model.Usuario;
 import com.projeto.CadastroUsuario.service.UsuarioService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/customers")
+@RequiredArgsConstructor
 public class UsuarioController {
 
     private final UsuarioService usuarioService;
 
-    public UsuarioController(UsuarioService usuarioService) {
-        this.usuarioService = usuarioService;
-    }
-
     @PostMapping
-    public Usuario incluirUsuario(@RequestBody Usuario usuario){
-        return usuarioService.salvarUsuario(usuario);
-    }
+    public ResponseEntity<UsuarioResponse> incluirUsuario(@RequestBody UsuarioRequest request) {
+        try {
+            Usuario usuarioSalvo = usuarioService.salvarUsuario(request);
+            return ResponseEntity.status(HttpStatus.CREATED).body(UsuarioResponse.fromEntity(usuarioSalvo));
 
-    @GetMapping("/customer")
-    public ResponseEntity<?> buscarUsuarioPorNome(@RequestParam String nome){
-        Optional<Usuario> usuario = usuarioService.buscarUsuarioPorNome(nome);
-        if (usuario.isPresent()){
-            return ResponseEntity.ok(usuario.get());
-        } else return ResponseEntity.status(404).body("Usuario não encontrado");
+        } catch (IllegalArgumentException error) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).build();
+        }
     }
 
     @GetMapping
-    public List<Usuario> listarUsuarios(){
-        return usuarioService.listarUsuarios();
+    public ResponseEntity<?> buscarUsuario(
+            @RequestParam(required = false) String nome,
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false) String documento) {
+
+        if (email != null) {
+            try {
+                Usuario usuario = usuarioService.buscarPorEmail(email);
+                return ResponseEntity.ok(UsuarioResponse.fromEntity(usuario));
+            } catch (IllegalArgumentException error) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error.getMessage());
+            }
+        }
+
+        if (documento != null) {
+            try {
+                Usuario usuario = usuarioService.buscarPorDocumento(documento);
+
+                return ResponseEntity.ok(UsuarioResponse.fromEntity(usuario));
+            } catch (IllegalArgumentException error) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error.getMessage());
+            }
+        }
+
+        if (nome != null) {
+            List<Usuario> usuarios = usuarioService.buscarUsuariosPorNome(nome);
+
+            if (usuarios.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Usuário não encontrado");
+            }
+
+            List<UsuarioResponse> response = usuarios.stream().map(UsuarioResponse::fromEntity).toList();
+
+            return ResponseEntity.ok(response);
+        }
+
+        List<UsuarioResponse> response = usuarioService.listarUsuarios().stream()
+                .map(UsuarioResponse::fromEntity).toList();
+        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping
-    public ResponseEntity<?> deletarUsuario(@RequestParam String nome){
-        boolean deleted = usuarioService.deletarUsuarioPorNome(nome);
-        if (deleted){
-            return ResponseEntity.ok("Usuario removido com sucesso");
-        } else return ResponseEntity.status(404).body("Cliente não encontrado");
+    public ResponseEntity<?> deletarUsuarioPorEmail(@RequestParam String email) {
+
+        boolean deleted = usuarioService.deletarUsuarioPorEmail(email);
+
+        if (deleted) {
+            return ResponseEntity.ok("Usuário removido com sucesso");
+        }
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Usuário não encontrado");
     }
 }

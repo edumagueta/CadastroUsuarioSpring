@@ -5,46 +5,31 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Column;
+import lombok.Getter;
+import lombok.Setter;
 
+import java.time.LocalDate;
+
+@Setter
+@Getter
 @Entity
 public class Usuario {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
     private String nome;
+
+    @Column(unique = true, nullable = false)
     private String email;
-    private int idade;
 
-    public Long getId() {
-        return id;
-    }
+    private LocalDate dataNascimento;
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+    @Column(unique = true, nullable = false)
+    private String documento;
 
-    public String getNome() {
-        return nome;
-    }
+    private Boolean indicadorRegularidade;
+    private Integer scoreCredito;
 
-    public void setNome(String nome) {
-        this.nome = nome;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public int getIdade() {
-        return idade;
-    }
-
-    public void setIdade(int idade) {
-        this.idade = idade;
-    }
 }
