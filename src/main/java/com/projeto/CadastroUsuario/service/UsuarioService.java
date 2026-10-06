@@ -3,39 +3,42 @@ package com.projeto.CadastroUsuario.service;
 import com.projeto.CadastroUsuario.dto.UsuarioRequest;
 import com.projeto.CadastroUsuario.model.Usuario;
 import com.projeto.CadastroUsuario.repository.UsuarioRepository;
-import lombok.RequiredArgsConstructor;
+import com.projeto.CadastroUsuario.messaging.UsuarioProducer;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
-@RequiredArgsConstructor
 public class UsuarioService {
 
     private final UsuarioRepository usuarioRepository;
+    private final UsuarioProducer usuarioProducer;
+
+    public UsuarioService(UsuarioRepository usuarioRepository, UsuarioProducer usuarioProducer) {
+        this.usuarioRepository = usuarioRepository;
+        this.usuarioProducer = usuarioProducer;
+    }
 
     public Usuario salvarUsuario(UsuarioRequest request) {
 
-        if (usuarioRepository.findByEmail(request.getEmail()).isPresent()) {
+        if (usuarioRepository.findByEmail(request.email()).isPresent()) {
             throw new IllegalArgumentException("Já existe um usuário cadastrado com este e-mail.");
-        }
-
-        if (request.getDocumento() != null
-                && !request.getDocumento().isBlank()
-                && usuarioRepository.findByDocumento(request.getDocumento()).isPresent()) {
-
-            throw new IllegalArgumentException("Já existe um usuário cadastrado com este documento.");
         }
 
         Usuario usuario = new Usuario();
 
-        usuario.setNome(request.getNome());
-        usuario.setEmail(request.getEmail());
-        usuario.setDataNascimento(request.getDataNascimento());
-        usuario.setDocumento(request.getDocumento());
+        usuario.setNome(request.nome());
+        usuario.setEmail(request.email());
+        usuario.setDataNascimento(request.dataNascimento());
 
-        return usuarioRepository.save(usuario);
+        Usuario salvo = usuarioRepository.save(usuario);
+        usuarioProducer.solicitarEnriquecimento(salvo.getId());
+        return salvo;
+    }
+
+    public Usuario buscarPorId(Long id) {
+        return usuarioRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado."));
     }
 
     public List<Usuario> buscarUsuariosPorNome(String nome) {
@@ -57,13 +60,11 @@ public class UsuarioService {
     }
 
     public boolean deletarUsuarioPorEmail(String email) {
-        Optional<Usuario> usuario = usuarioRepository.findByEmail(email);
-
-        if (usuario.isPresent()) {
-            usuarioRepository.delete(usuario.get());
-            return true;
-        }
-
-        return false;
+        return usuarioRepository.findByEmail(email)
+                .map(usuario -> {
+                    usuarioRepository.delete(usuario);
+                    return true;
+                })
+                .orElse(false);
     }
 }

@@ -8,29 +8,35 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
-import java.util.ArrayList;
+import java.util.Map;
 import java.util.List;
 
 @RestController
 @RequestMapping("/customers")
+@Tag(name = "Usuários", description = "Cadastro e consulta de usuários")
 @RequiredArgsConstructor
 public class UsuarioController {
 
     private final UsuarioService usuarioService;
 
     @PostMapping
-    public ResponseEntity<UsuarioResponse> incluirUsuario(@RequestBody UsuarioRequest request) {
+    @Operation(summary = "Cadastrar usuário", description = "Cadastra os dados básicos e solicita o enriquecimento assíncrono via Kafka.")
+    public ResponseEntity<?> incluirUsuario(@RequestBody UsuarioRequest request) {
         try {
             Usuario usuarioSalvo = usuarioService.salvarUsuario(request);
             return ResponseEntity.status(HttpStatus.CREATED).body(UsuarioResponse.fromEntity(usuarioSalvo));
 
         } catch (IllegalArgumentException error) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).build();
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("mensagem", error.getMessage()));
         }
     }
 
     @GetMapping
+    @Operation(summary = "Consultar usuários", description = "Lista usuários ou filtra por nome, email ou documento.")
     public ResponseEntity<?> buscarUsuario(
             @RequestParam(required = false) String nome,
             @RequestParam(required = false) String email,
@@ -73,6 +79,7 @@ public class UsuarioController {
     }
 
     @DeleteMapping
+    @Operation(summary = "Excluir usuário", description = "Remove um usuário identificado pelo email.")
     public ResponseEntity<?> deletarUsuarioPorEmail(@RequestParam String email) {
 
         boolean deleted = usuarioService.deletarUsuarioPorEmail(email);

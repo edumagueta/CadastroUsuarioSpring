@@ -26,7 +26,7 @@ public class Usuario {
 
     private LocalDate dataNascimento;
 
-    @Column(unique = true, nullable = false)
+    @Column(unique = true)
     private String documento;
 
     private Boolean indicadorRegularidade;
