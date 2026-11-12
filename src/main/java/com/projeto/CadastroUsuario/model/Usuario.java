@@ -9,6 +9,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDate;
+import java.time.Period;
 
 @Setter
 @Getter
@@ -26,10 +27,17 @@ public class Usuario {
 
     private LocalDate dataNascimento;
 
-    @Column(unique = true, nullable = false)
     private String documento;
 
     private Boolean indicadorRegularidade;
     private Integer scoreCredito;
+    private boolean publicacaoPendente;
 
+    public Integer getIdade() {
+        return calcularIdade(LocalDate.now());
+    }
+
+    public Integer calcularIdade(LocalDate dataReferencia) {
+        return dataNascimento == null ? null : Period.between(dataNascimento, dataReferencia).getYears();
+    }
 }

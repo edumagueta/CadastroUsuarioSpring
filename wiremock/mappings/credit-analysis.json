@@ -1,0 +1,18 @@
+{
+  "request": {
+    "method": "GET",
+    "urlPath": "/credit-analysis/person",
+    "queryParameters": {
+      "document": { "equalTo": "123.456.789-00" }
+    }
+  },
+  "response": {
+    "status": 200,
+    "headers": { "Content-Type": "application/json" },
+    "jsonBody": {
+      "document": "123.456.789-00",
+      "creditScore": 812,
+      "rating": "A"
+    }
+  }
+}
