@@ -3,26 +3,31 @@ package com.projeto.CadastroUsuario.service;
 import com.projeto.CadastroUsuario.dto.UsuarioRequest;
 import com.projeto.CadastroUsuario.model.Usuario;
 import com.projeto.CadastroUsuario.repository.UsuarioRepository;
-import com.projeto.CadastroUsuario.messaging.UsuarioProducer;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.time.LocalDate;
 
 @Service
 public class UsuarioService {
 
     private final UsuarioRepository usuarioRepository;
-    private final UsuarioProducer usuarioProducer;
 
-    public UsuarioService(UsuarioRepository usuarioRepository, UsuarioProducer usuarioProducer) {
+    public UsuarioService(UsuarioRepository usuarioRepository) {
         this.usuarioRepository = usuarioRepository;
-        this.usuarioProducer = usuarioProducer;
     }
 
     public Usuario salvarUsuario(UsuarioRequest request) {
 
-        if (usuarioRepository.findByEmail(request.email()).isPresent()) {
-            throw new IllegalArgumentException("Já existe um usuário cadastrado com este e-mail.");
+        if (request.dataNascimento() == null || request.dataNascimento().isAfter(LocalDate.now())) {
+            throw new IllegalArgumentException("Informe uma data de nascimento válida.");
+        }
+        if (request.email() == null || request.email().isBlank()) {
+            throw new IllegalArgumentException("Informe o e-mail.");
+        }
+        if (usuarioRepository.existsByEmail(request.email())) {
+            throw new EmailDuplicadoException();
         }
 
         Usuario usuario = new Usuario();
@@ -30,10 +35,16 @@ public class UsuarioService {
         usuario.setNome(request.nome());
         usuario.setEmail(request.email());
         usuario.setDataNascimento(request.dataNascimento());
+        usuario.setPublicacaoPendente(true);
 
-        Usuario salvo = usuarioRepository.save(usuario);
-        usuarioProducer.solicitarEnriquecimento(salvo.getId());
-        return salvo;
+        try {
+            return usuarioRepository.saveAndFlush(usuario);
+        } catch (DataIntegrityViolationException erro) {
+            if (usuarioRepository.existsByEmail(request.email())) {
+                throw new EmailDuplicadoException();
+            }
+            throw erro;
+        }
     }
 
     public Usuario buscarPorId(Long id) {
@@ -42,7 +53,7 @@ public class UsuarioService {
     }
 
     public List<Usuario> buscarUsuariosPorNome(String nome) {
-        return usuarioRepository.findByNome(nome);
+        return usuarioRepository.findByNomeIgnoreCase(nome);
     }
 
     public Usuario buscarPorEmail(String email) {
@@ -50,9 +61,8 @@ public class UsuarioService {
                 .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado."));
     }
 
-    public Usuario buscarPorDocumento(String documento) {
-        return usuarioRepository.findByDocumento(documento)
-                .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado."));
+    public List<Usuario> buscarPorDocumento(String documento) {
+        return usuarioRepository.findByDocumento(documento);
     }
 
     public List<Usuario> listarUsuarios() {

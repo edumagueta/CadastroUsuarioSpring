@@ -1,0 +1,61 @@
+services:
+  kafka:
+    image: apache/kafka:4.1.1
+    ports:
+      - "127.0.0.1:9092:9092"
+    environment:
+      CLUSTER_ID: "4L6g3nShT-eMCtK--X86sw"
+      KAFKA_NODE_ID: "1"
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: "HOST://:9092,INTERNAL://:29092,CONTROLLER://:29093"
+      KAFKA_ADVERTISED_LISTENERS: "HOST://localhost:9092,INTERNAL://kafka:29092"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "HOST:PLAINTEXT,INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT"
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka:29093"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+    healthcheck:
+      test: ["CMD", "/opt/kafka/bin/kafka-topics.sh", "--bootstrap-server", "kafka:29092", "--list"]
+      interval: 5s
+      timeout: 10s
+      retries: 15
+
+  kafka-init:
+    image: apache/kafka:4.1.1
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: ["/opt/kafka/bin/kafka-topics.sh"]
+    command:
+      - --bootstrap-server
+      - kafka:29092
+      - --create
+      - --if-not-exists
+      - --topic
+      - usuario-enriquecimento
+      - --partitions
+      - "1"
+      - --replication-factor
+      - "1"
+
+  wiremock:
+    image: wiremock/wiremock:3.13.1
+    ports:
+      - "127.0.0.1:8089:8080"
+    volumes:
+      - ./wiremock/mappings:/home/wiremock/mappings:ro
+
+  app:
+    build: .
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      FEDERAL_MANAGER_BASE_URL: http://wiremock:8080
+      CREDIT_ANALYSIS_BASE_URL: http://wiremock:8080
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+      wiremock:
+        condition: service_started

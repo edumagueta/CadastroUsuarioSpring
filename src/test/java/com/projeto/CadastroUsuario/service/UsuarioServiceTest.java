@@ -3,7 +3,7 @@ package com.projeto.CadastroUsuario.service;
 import com.projeto.CadastroUsuario.model.Usuario;
 import com.projeto.CadastroUsuario.repository.UsuarioRepository;
 import com.projeto.CadastroUsuario.dto.UsuarioRequest;
-import com.projeto.CadastroUsuario.messaging.UsuarioProducer;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -12,6 +12,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 import java.util.Optional;
+import java.time.LocalDate;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -25,15 +26,12 @@ class UsuarioServiceTest {
 
     @Mock
     private UsuarioRepository usuarioRepository;
-    @Mock
-    private UsuarioProducer usuarioProducer;
-
     @Test
     void deveBuscarUsuariosPorNome() {
         Usuario usuario = criarUsuario("Eduardo", "eduardo@gmail.com", "12345678900");
-        when(usuarioRepository.findByNome("Eduardo")).thenReturn(List.of(usuario));
+        when(usuarioRepository.findByNomeIgnoreCase("eduardo")).thenReturn(List.of(usuario));
 
-        List<Usuario> resultado = usuarioService.buscarUsuariosPorNome("Eduardo");
+        List<Usuario> resultado = usuarioService.buscarUsuariosPorNome("eduardo");
 
         assertEquals(1, resultado.size());
         assertEquals("Eduardo", resultado.get(0).getNome());
@@ -41,34 +39,45 @@ class UsuarioServiceTest {
 
     @Test
     void deveSalvarUsuario() {
-        Usuario usuario = criarUsuario("Eduardo", "eduardo@gmail.com", "12345678900");
-        when(usuarioRepository.findByEmail("eduardo@gmail.com")).thenReturn(Optional.empty());
-        when(usuarioRepository.save(any(Usuario.class))).thenAnswer(invocation -> {
+        when(usuarioRepository.saveAndFlush(any(Usuario.class))).thenAnswer(invocation -> {
             Usuario salvo = invocation.getArgument(0);
             salvo.setId(42L);
             return salvo;
         });
 
-        Usuario salvo = usuarioService.salvarUsuario(new UsuarioRequest("Eduardo", "eduardo@gmail.com", null));
+        Usuario salvo = usuarioService.salvarUsuario(new UsuarioRequest("Eduardo", "eduardo@gmail.com",
+                LocalDate.of(1990, 5, 20)));
 
         assertNotNull(salvo);
         assertEquals("Eduardo", salvo.getNome());
-        verify(usuarioRepository).save(any(Usuario.class));
-        verify(usuarioProducer).solicitarEnriquecimento(42L);
+        assertTrue(salvo.isPublicacaoPendente());
+        assertEquals(34, salvo.calcularIdade(LocalDate.of(2025, 5, 19)));
+        assertEquals(35, salvo.calcularIdade(LocalDate.of(2025, 5, 20)));
     }
 
     @Test
     void deveLancarExcecaoQuandoEmailJaExiste() {
-        Usuario usuario = criarUsuario("Eduardo", "eduardo@gmail.com", "12345678900");
-        when(usuarioRepository.findByEmail("eduardo@gmail.com")).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.existsByEmail("eduardo@gmail.com")).thenReturn(true);
 
         IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
-                () -> usuarioService.salvarUsuario(new UsuarioRequest("Eduardo", "eduardo@gmail.com", null))
+                EmailDuplicadoException.class,
+                () -> usuarioService.salvarUsuario(new UsuarioRequest("Eduardo", "eduardo@gmail.com",
+                        LocalDate.of(1990, 5, 20)))
         );
 
         assertEquals("Já existe um usuário cadastrado com este e-mail.", exception.getMessage());
-        verify(usuarioRepository, never()).save(any());
+        verify(usuarioRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void deveTratarEmailCadastradoEntreConsultaESalvamento() {
+        when(usuarioRepository.existsByEmail("eduardo@gmail.com")).thenReturn(false, true);
+        when(usuarioRepository.saveAndFlush(any(Usuario.class)))
+                .thenThrow(new DataIntegrityViolationException("Email duplicado"));
+
+        assertThrows(EmailDuplicadoException.class,
+                () -> usuarioService.salvarUsuario(new UsuarioRequest("Eduardo", "eduardo@gmail.com",
+                        LocalDate.of(1990, 5, 20))));
     }
 
     @Test

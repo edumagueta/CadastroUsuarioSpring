@@ -4,6 +4,7 @@ import com.projeto.CadastroUsuario.dto.UsuarioRequest;
 import com.projeto.CadastroUsuario.dto.UsuarioResponse;
 import com.projeto.CadastroUsuario.model.Usuario;
 import com.projeto.CadastroUsuario.service.UsuarioService;
+import com.projeto.CadastroUsuario.service.EmailDuplicadoException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,14 +30,16 @@ public class UsuarioController {
             Usuario usuarioSalvo = usuarioService.salvarUsuario(request);
             return ResponseEntity.status(HttpStatus.CREATED).body(UsuarioResponse.fromEntity(usuarioSalvo));
 
-        } catch (IllegalArgumentException error) {
+        } catch (EmailDuplicadoException error) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
                     .body(Map.of("mensagem", error.getMessage()));
+        } catch (IllegalArgumentException error) {
+            return ResponseEntity.badRequest().body(Map.of("mensagem", error.getMessage()));
         }
     }
 
     @GetMapping
-    @Operation(summary = "Consultar usuários", description = "Lista usuários ou filtra por nome, email ou documento.")
+    @Operation(summary = "Consultar usuários", description = "Filtra por email ou lista as contas por documento ou nome, ignorando maiúsculas e minúsculas no nome.")
     public ResponseEntity<?> buscarUsuario(
             @RequestParam(required = false) String nome,
             @RequestParam(required = false) String email,
@@ -52,13 +55,10 @@ public class UsuarioController {
         }
 
         if (documento != null) {
-            try {
-                Usuario usuario = usuarioService.buscarPorDocumento(documento);
-
-                return ResponseEntity.ok(UsuarioResponse.fromEntity(usuario));
-            } catch (IllegalArgumentException error) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error.getMessage());
-            }
+            List<Usuario> usuarios = usuarioService.buscarPorDocumento(documento);
+            return usuarios.isEmpty()
+                    ? ResponseEntity.status(HttpStatus.NOT_FOUND).body("Usuário não encontrado")
+                    : ResponseEntity.ok(usuarios.stream().map(UsuarioResponse::fromEntity).toList());
         }
 
         if (nome != null) {

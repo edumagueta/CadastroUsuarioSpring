@@ -1,0 +1,14 @@
+{
+  "request": {
+    "method": "GET",
+    "urlPath": "/federal-manager/Eduardo"
+  },
+  "response": {
+    "status": 200,
+    "headers": { "Content-Type": "application/json" },
+    "jsonBody": {
+      "numero_cpf": "123.456.789-00",
+      "situacao_cadastral": "REGULAR"
+    }
+  }
+}
